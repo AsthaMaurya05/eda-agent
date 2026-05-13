@@ -9,9 +9,14 @@ import os
 # Load API key: try st.secrets first (Streamlit Cloud), fall back to .env (local)
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-except FileNotFoundError:
+except (KeyError, FileNotFoundError):
     load_dotenv()
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Validate API key exists
+if not GROQ_API_KEY:
+    st.error("❌ GROQ_API_KEY not found. Please add it to Streamlit Cloud Secrets.")
+    st.stop()
 
 # ── PAGE CONFIG ───────────────────────────────────────────────
 st.set_page_config(
