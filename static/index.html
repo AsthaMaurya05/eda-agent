@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EDA Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 40px; }
+    header h1 { font-size: 2rem; color: #ffffff; }
+    header h1 span { color: #7c6af7; }
+    header p  { color: #888; margin-top: 8px; font-size: 0.95rem; }
+
+    /* ── Upload box ── */
+    .upload-area {
+      border: 2px dashed #7c6af7;
+      border-radius: 16px;
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .upload-area:hover { background: #1a1a2e; }
+    .upload-area p { color: #888; margin-top: 12px; font-size: 0.9rem; }
+
+    .upload-icon { font-size: 3rem; }
+
+    #file-input { display: none; }
+
+    .btn {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: #7c6af7;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #6254d4; }
+    .btn:disabled { background: #444; cursor: not-allowed; }
+
+    /* ── File chosen indicator ── */
+    #file-name {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      color: #7c6af7;
+      min-height: 20px;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 60px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #333;
+      border-top-color: #7c6af7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: #888; }
+
+    /* ── Results ── */
+    #results { display: none; margin-top: 40px; }
+
+    .meta-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .meta-card {
+      flex: 1;
+      background: #1e1e2e;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .meta-card .value { font-size: 2rem; font-weight: 700; color: #7c6af7; }
+    .meta-card .label { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+    /* ── Download card — more prominent ── */
+    #download-card {
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border 0.2s, background 0.2s, transform 0.2s;
+    }
+    #download-card:hover {
+      border-color: #7c6af7;
+      background: #1a1a2e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(124, 106, 247, 0.3);
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 32px 0 16px;
+      padding-left: 12px;
+      border-left: 3px solid #7c6af7;
+    }
+
+    .summary-box {
+      background: #1e1e2e;
+      border-radius: 12px;
+      padding: 24px;
+      line-height: 1.8;
+      color: #ccc;
+      white-space: pre-wrap;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .meta-bar    { flex-direction: column; }
+    }
+
+    /* ── Chart card ── */
+    .chart-card {
+      background: #1e1e2e;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .chart-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(124,106,247,0.2);
+    }
+    .chart-card img {
+      width: 100%;
+      display: block;
+    }
+    .chart-card .chart-label {
+      padding: 10px 16px;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+    }
+
+    /* ── Reset button ── */
+    #reset-btn {
+      display: block;
+      margin: 40px auto 0;
+      padding: 10px 28px;
+      background: transparent;
+      border: 1px solid #7c6af7;
+      color: #7c6af7;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    #reset-btn:hover { background: #7c6af7; color: white; }
+
+    /* ── Error ── */
+    #error-box {
+      display: none;
+      background: #2a1a1a;
+      border: 1px solid #c0392b;
+      border-radius: 12px;
+      padding: 20px;
+      color: #e74c3c;
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    /* ── Modal lightbox ── */
+    #modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    #modal.open {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    #modal-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(124,106,247,0.3);
+    }
+    #modal-close {
+      position: fixed;
+      top: 20px;
+      right: 28px;
+      font-size: 2rem;
+      color: white;
+      cursor: pointer;
+      background: none;
+      border: none;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    #modal-close:hover { color: #7c6af7; }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e1e2e;
+      margin: 16px 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th {
+      background: #7c6af7;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #333;
+      color: #ccc;
+    }
+    tr:hover { background: #252535; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>EDA <span>Agent</span></h1>
+    <p>Upload a CSV — the AI agent decides what to analyze</p>
+  </header>
+
+  <!-- Upload Section -->
+  <div id="upload-section">
+    <div class="upload-area" onclick="document.getElementById('file-input').click()">
+      <div class="upload-icon">📂</div>
+      <p>Click to upload a CSV file</p>
+      <input type="file" id="file-input" accept=".csv" onchange="handleFileSelect(event)"/>
+    </div>
+    <div id="file-name"></div>
+    <div style="text-align:center">
+      <button class="btn" id="analyze-btn" onclick="runAnalysis()" disabled>
+        Analyze with AI Agent
+      </button>
+    </div>
+    <div id="error-box"></div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Agent is thinking... running tools on your data</p>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Meta bar with download button -->
+    <div class="meta-bar">
+      <div class="meta-card">
+        <div class="value" id="rows-val">—</div>
+        <div class="label">Rows</div>
+      </div>
+      <div class="meta-card">
+        <div class="value" id="cols-val">—</div>
+        <div class="label">Columns</div>
+      </div>
+      <div class="meta-card">
+        <div class="value" id="charts-val">—</div>
+        <div class="label">Charts Generated</div>
+      </div>
+      <div class="meta-card" id="download-card" onclick="downloadReport()" title="Download the PDF report">
+        <div class="value">📥</div>
+        <div class="label">Download PDF Report</div>
+      </div>
+    </div>
+
+    <!-- Dataset Overview Section -->
+    <div class="section-title">1. Dataset Overview</div>
+    <div id="overview-section"></div>
+
+    <!-- Basic Statistics Section -->
+    <div class="section-title">2. Basic Statistics</div>
+    <div id="statistics-section"></div>
+
+    <!-- Outlier Detection Section -->
+    <div class="section-title">3. Outlier Detection (IQR Method)</div>
+    <div id="outliers-section"></div>
+
+    <!-- AI Agent Summary Section -->
+    <div class="section-title">4. AI Agent Summary</div>
+    <div class="summary-box" id="summary-text"></div>
+
+    <!-- Charts Section -->
+    <div class="section-title">5. Charts</div>
+    <div class="charts-grid" id="charts-grid"></div>
+
+    <button id="reset-btn" onclick="resetApp()">Analyze Another File</button>
+  </div>
+
+  <!-- Modal lightbox -->
+  <div id="modal" onclick="closeModal(event)">
+    <button id="modal-close" onclick="closeModalDirect()">✕</button>
+    <img id="modal-img" src="" alt="Chart fullscreen"/>
+  </div>
+
+</div>
+
+<script>
+  let selectedFile = null;
+  let reportUrl    = null;
+
+  function handleFileSelect(event) {
+    selectedFile = event.target.files[0];
+    if (selectedFile) {
+      document.getElementById('file-name').textContent = '📄 ' + selectedFile.name;
+      document.getElementById('analyze-btn').disabled = false;
+      document.getElementById('error-box').style.display = 'none';
+    }
+  }
+
+  async function runAnalysis() {
+    if (!selectedFile) return;
+
+    document.getElementById('upload-section').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Something went wrong');
+      }
+
+      const data = await response.json();
+      showResults(data);
+
+    } catch (err) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('upload-section').style.display = 'block';
+      const box = document.getElementById('error-box');
+      box.textContent = '❌ ' + err.message;
+      box.style.display = 'block';
+    }
+  }
+
+  function showResults(data) {
+    reportUrl = data.report_url;
+
+    document.getElementById('loading').style.display  = 'none';
+    document.getElementById('results').style.display  = 'block';
+
+    document.getElementById('rows-val').textContent   = data.rows;
+    document.getElementById('cols-val').textContent   = data.columns;
+    document.getElementById('charts-val').textContent = data.charts.length;
+
+    // Dataset Overview Table
+    if (data.overview && Object.keys(data.overview).length > 0) {
+      const overview = data.overview;
+      let overviewHTML = `
+        <table>
+          <tr><th colspan="2">Dataset Dimensions</th></tr>
+          <tr><td><strong>Total Rows:</strong></td><td>${overview.rows || 0}</td></tr>
+          <tr><td><strong>Total Columns:</strong></td><td>${overview.columns || 0}</td></tr>
+          <tr><td><strong>Column Names:</strong></td><td>${(overview.column_names || []).join(', ')}</td></tr>
+        </table>
+        <table>
+          <thead>
+            <tr><th>Column</th><th>Data Type</th><th>Null Count</th><th>Null %</th></tr>
+          </thead>
+          <tbody>`;
+      
+      (overview.column_names || []).forEach(col => {
+        overviewHTML += `<tr>
+          <td>${col}</td>
+          <td>${overview.data_types?.[col] || 'unknown'}</td>
+          <td>${overview.null_counts?.[col] || 0}</td>
+          <td>${overview.null_percentage?.[col] || 0}%</td>
+        </tr>`;
+      });
+      overviewHTML += '</tbody></table>';
+      document.getElementById('overview-section').innerHTML = overviewHTML;
+    }
+
+    // Basic Statistics Table
+    if (data.statistics && Object.keys(data.statistics).length > 0 && !data.statistics.error) {
+      const stats = data.statistics;
+      let statsHTML = '<table><thead><tr><th>Column</th><th>Mean</th><th>Median</th><th>Std Dev</th><th>Min</th><th>Max</th></tr></thead><tbody>';
+      
+      const columns = Object.keys(stats.mean || {});
+      columns.forEach(col => {
+        statsHTML += `<tr>
+          <td>${col}</td>
+          <td>${(stats.mean?.[col] || 0).toFixed(2)}</td>
+          <td>${(stats.median?.[col] || 0).toFixed(2)}</td>
+          <td>${(stats.std?.[col] || 0).toFixed(2)}</td>
+          <td>${(stats.min?.[col] || 0).toFixed(2)}</td>
+          <td>${(stats.max?.[col] || 0).toFixed(2)}</td>
+        </tr>`;
+      });
+      statsHTML += '</tbody></table>';
+      document.getElementById('statistics-section').innerHTML = statsHTML;
+    }
+
+    // Outliers Table
+    if (data.outliers && Object.keys(data.outliers).length > 0 && !data.outliers.error) {
+      const outliers = data.outliers;
+      let outliersHTML = '<table><thead><tr><th>Column</th><th>Outlier Count</th><th>Lower Bound</th><th>Upper Bound</th></tr></thead><tbody>';
+      
+      Object.keys(outliers).forEach(col => {
+        const info = outliers[col];
+        outliersHTML += `<tr>
+          <td>${col}</td>
+          <td>${info.outlier_count || 0}</td>
+          <td>${(info.lower_bound || 0).toFixed(2)}</td>
+          <td>${(info.upper_bound || 0).toFixed(2)}</td>
+        </tr>`;
+      });
+      outliersHTML += '</tbody></table>';
+      document.getElementById('outliers-section').innerHTML = outliersHTML;
+    }
+
+    // Summary
+    document.getElementById('summary-text').textContent = data.summary;
+
+    // Charts
+    const grid = document.getElementById('charts-grid');
+    grid.innerHTML = '';
+    data.charts.forEach(chartUrl => {
+      const name = chartUrl.split('/').pop().replace('.png','').replace(/_/g,' ');
+      const ts   = Date.now();
+      grid.innerHTML += `
+        <div class="chart-card" onclick="openModal('${chartUrl}?t=${ts}')">
+          <img src="${chartUrl}?t=${ts}" alt="${name}"/>
+          <div class="chart-label">🔍 Click to enlarge</div>
+        </div>`;
+    });
+  }
+
+  function downloadReport() {
+    if (reportUrl) {
+      const a = document.createElement('a');
+      a.href = reportUrl;
+      a.download = 'eda_report.pdf';
+      a.click();
+    }
+  }
+
+  function resetApp() {
+    selectedFile = null;
+    reportUrl    = null;
+    document.getElementById('file-input').value             = '';
+    document.getElementById('file-name').textContent        = '';
+    document.getElementById('analyze-btn').disabled         = true;
+    document.getElementById('results').style.display        = 'none';
+    document.getElementById('upload-section').style.display = 'block';
+    document.getElementById('error-box').style.display      = 'none';
+  }
+
+  /* ── Modal ── */
+  function openModal(src) {
+    document.getElementById('modal-img').src = src;
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModalDirect() {
+    document.getElementById('modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeModal(event) {
+    if (event.target === document.getElementById('modal')) {
+      closeModalDirect();
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModalDirect();
+  });
+</script>
+</body>
+</html>
