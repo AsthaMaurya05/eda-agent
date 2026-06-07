@@ -1,4 +1,5 @@
 import os
+import sys
 import uuid
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -6,6 +7,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from agent import run_eda_agent
 from report import generate_report
+
+# Create necessary directories if they don't exist
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("outputs", exist_ok=True)
 
 app = FastAPI(title="EDA Agent")
 
@@ -85,3 +90,9 @@ async def analyze_csv(file: UploadFile = File(...)):
         "statistics": result.get("statistics", {}),
         "outliers":   result.get("outliers", {})
     })
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
