@@ -2,6 +2,8 @@
 
 An AI-powered **Exploratory Data Analysis (EDA) platform** that automatically analyzes CSV files and generates professional reports with statistics, visualizations, and AI-generated insights.
 
+live demo - https://eda-agent-iz93.onrender.com/
+
 ## What is EDA Agent?
 
 EDA Agent is a web-based application that simplifies data analysis. Simply upload a CSV file, and the AI agent will:
